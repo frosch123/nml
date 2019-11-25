@@ -181,6 +181,7 @@ class VarAction2ProcCallVar(VarAction2Var):
         VarAction2Var.__init__(self, 0x7E, 0, 0)
         # Reference to the called action2
         self.sg_ref = sg_ref
+        self.comment = str(sg_ref)
 
     def resolve_parameter(self, feature):
         self.parameter = self.sg_ref.get_action2_id(feature)
@@ -189,7 +190,6 @@ class VarAction2ProcCallVar(VarAction2Var):
         return 7
 
     def write(self, file, size):
-        self.mask = get_mask(size)
         VarAction2Var.write(self, file, size)
 
 # General load and store class for temp parameters
@@ -560,6 +560,13 @@ class Varaction2Parser:
         self.var_list.append(var_access)
         self.var_list_size += var_access.get_size()
         self.proc_call_list.append(expr)
+        # read variable 1C to access the full 32 bit result
+        self.var_list.append(nmlop.ADD)
+        self.var_list_size += 1
+        var = VarAction2Var(0x1C, 0, 0xFFFFFFFF)
+        var.comment = str(expr)
+        self.var_list.append(var)
+        self.var_list_size += var.get_size()
 
 
     def parse_expr(self, expr):
