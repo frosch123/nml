@@ -1085,7 +1085,7 @@ class RandomSoundsProp(BaseAction0Property):
         file.newline()
 
     def get_size(self):
-        return len(self.sound_list) + 2
+        return 2 * len(self.sound_list) + 3
 
 
 def random_sounds(value):
