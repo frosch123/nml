@@ -387,13 +387,59 @@ class Action0(base_action.BaseAction):
         if self.num_ids is None:
             self.num_ids = 1
 
+    SIZE_VARIANT = 3
+
+    def get_size_size(self, prop_size):
+        if self.SIZE_VARIANT == 1:
+            return 4
+        elif self.SIZE_VARIANT == 2:
+            return 1 if prop_size < 0x100 else 5
+        elif self.SIZE_VARIANT == 3:
+            if prop_size > (1 << 28):
+                return 5
+            elif prop_size > (1 << 21):
+                return 4
+            elif prop_size > (1 << 14):
+                return 3
+            elif prop_size > (1 << 7):
+                return 2
+            else:
+                return 1
+
+    def print_size(self, file, prop_size):
+        if self.SIZE_VARIANT == 1:
+            file.print_dword(prop_size)
+        elif self.SIZE_VARIANT == 2:
+            if prop_size < 0x100:
+                file.print_byte(prop_size)
+            else:
+                file.print_byte(0)
+                file.print_dword(prop_size)
+        elif self.SIZE_VARIANT == 3:
+            if prop_size > (1 << 7):
+                if prop_size > (1 << 14):
+                    if prop_size > (1 << 21):
+                        if prop_size > (1 << 28):
+                            file.print_bytex(0xF0)
+                            file.print_bytex(prop_size >> 24)
+                        else:
+                            file.print_bytex(0xE0 | (prop_size >> 24))
+                        file.print_bytex((prop_size >> 16) & 0xFF)
+                    else:
+                        file.print_bytex(0xC0 | (prop_size >> 16))
+                    file.print_bytex((prop_size >> 8) & 0xFF)
+                else:
+                    file.print_bytex(0x80 | (prop_size >> 8))
+            file.print_bytex(prop_size & 0xFF)
+
     def write(self, file):
         size = 7
         for prop in self.prop_list:
             assert isinstance(prop, BaseAction0Property), type(prop)
             if isinstance(prop, Action0Property):
                 assert len(prop.values) == self.num_ids
-            size += prop.get_size()
+            prop_size = prop.get_size()
+            size += self.get_size_size(prop_size) + prop_size
         file.start_sprite(size)
         file.print_bytex(0)
         file.print_bytex(self.feature)
@@ -402,6 +448,8 @@ class Action0(base_action.BaseAction):
         file.print_wordx(self.id)
         file.newline()
         for prop in self.prop_list:
+            prop_size = prop.get_size()
+            self.print_size(file, prop_size)
             prop.write(file)
         file.end_sprite()
 
